@@ -1,60 +1,68 @@
 // src/hooks/useAudioInput.js
-import { useEffect, useRef } from 'react'
+import { useRef, useState } from 'react'
 import useAudioStore from '../store/audioStore'
+import { transcribeAudio } from '../api/nlp'
+import toast from 'react-hot-toast'
 
 export default function useAudioInput(lang = 'en') {
   const { isRecording, setIsRecording, setTranscript } = useAudioStore()
-  const recognitionRef = useRef(null)
+  const mediaRecorderRef = useRef(null)
+  const audioChunksRef = useRef([])
+  const [isProcessing, setIsProcessing] = useState(false)
 
-  useEffect(() => {
-    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-      console.warn('Speech Recognition not supported')
-      return
-    }
-
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
-    recognitionRef.current = new SpeechRecognition()
-    recognitionRef.current.continuous = true
-    recognitionRef.current.interimResults = true
-
-    recognitionRef.current.onresult = (event) => {
-      let currentTranscript = ''
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        currentTranscript += event.results[i][0].transcript
-      }
-      setTranscript(currentTranscript)
-    }
-
-    recognitionRef.current.onerror = (event) => {
-      console.error('Speech recognition error', event.error)
-      setIsRecording(false)
-    }
-
-    recognitionRef.current.onend = () => {
-      setIsRecording(false)
-    }
-  }, [setIsRecording, setTranscript])
-
-  const toggleRecording = () => {
-    if (!recognitionRef.current) return alert('Speech recognition not supported')
-    
+  const toggleRecording = async () => {
     if (isRecording) {
-      recognitionRef.current.stop()
-      setIsRecording(false)
+      stopRecording()
     } else {
-      setTranscript('')
-      recognitionRef.current.lang = lang
-      recognitionRef.current.start()
-      setIsRecording(true)
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+        mediaRecorderRef.current = new MediaRecorder(stream, {
+          // Use webm format if supported
+          mimeType: MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : ''
+        })
+        
+        audioChunksRef.current = []
+        
+        mediaRecorderRef.current.ondataavailable = (e) => {
+          if (e.data.size > 0) {
+            audioChunksRef.current.push(e.data)
+          }
+        }
+        
+        mediaRecorderRef.current.onstop = async () => {
+          setIsProcessing(true)
+          try {
+            const audioBlob = new Blob(audioChunksRef.current, { 
+              type: mediaRecorderRef.current.mimeType || 'audio/webm' 
+            })
+            const transcript = await transcribeAudio(audioBlob)
+            setTranscript(transcript)
+          } catch (err) {
+            console.error('Transcription error:', err)
+            toast.error('Failed to transcribe audio')
+          } finally {
+            setIsProcessing(false)
+            // Cleanup media tracks
+            stream.getTracks().forEach(track => track.stop())
+          }
+        }
+        
+        setTranscript('')
+        mediaRecorderRef.current.start()
+        setIsRecording(true)
+      } catch (err) {
+        console.error('Mic access denied:', err)
+        toast.error('Microphone access denied')
+      }
     }
   }
 
   const stopRecording = () => {
-    if (recognitionRef.current && isRecording) {
-      recognitionRef.current.stop()
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop()
       setIsRecording(false)
     }
   }
 
-  return { isRecording, toggleRecording, stopRecording }
+  return { isRecording, isProcessing, toggleRecording, stopRecording }
 }

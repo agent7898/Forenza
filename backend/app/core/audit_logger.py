@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models import AuditLog
@@ -7,8 +9,8 @@ from app.schemas.audit import AuditLogEntry
 async def write_audit_log(db: AsyncSession, entry: AuditLogEntry) -> AuditLog:
     """Write an audit log entry with structured columns."""
     record = AuditLog(
-        session_id=entry.session_id,
-        user_id=entry.user_id,
+        session_id=UUID(entry.session_id) if entry.session_id else None,
+        user_id=UUID(entry.user_id) if entry.user_id else None,
         action=entry.action,
         params_before=entry.params_before,
         params_after=entry.params_after,

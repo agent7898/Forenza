@@ -11,7 +11,7 @@ import client from './client'
  * We normalise it to the shape the UI expects.
  */
 export const parseNLP = async (text, lang) => {
-  const res = await client.post('/api/nlp/parse', { text })
+  const res = await client.post('/api/nlp/parse', { text, lang })
   const data = res.data
 
   // Backend currently returns { user_id, input, parsed }
@@ -20,4 +20,19 @@ export const parseNLP = async (text, lang) => {
     interpretation: data.interpretation ?? `Processed: "${text}"`,
     parameters: data.parsed ?? data.parameters ?? {},
   }
+}
+
+/**
+ * Transcribe audio blob to text using the backend Whisper integration.
+ * POST /api/nlp/transcribe
+ */
+export const transcribeAudio = async (audioBlob) => {
+  const formData = new FormData()
+  // Append as a webm file (supported natively by MediaRecorder and Whisper)
+  formData.append('file', audioBlob, 'recording.webm')
+  
+  const res = await client.post('/api/nlp/transcribe', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+  return res.data.transcript
 }

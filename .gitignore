@@ -4,3 +4,6 @@ backend/app/.env
 __pycache__/
 *.pyc
 TEST_RESULTS.md
+
+# Local runner scripts
+start_all.sh

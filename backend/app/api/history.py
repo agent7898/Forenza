@@ -28,7 +28,7 @@ async def session_history(
         )
 
     user_id = current_user.get("sub")
-    if session.user_id != user_id:
+    if str(session.user_id) != user_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Forbidden"

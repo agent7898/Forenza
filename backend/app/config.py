@@ -38,4 +38,6 @@ def get_settings() -> dict[str, str]:
         "R2_SECRET_ACCESS_KEY": os.getenv("R2_SECRET_ACCESS_KEY", ""),
         "R2_BUCKET": os.getenv("R2_BUCKET", "forensic-faces"),
         "AUTH_SERVICE_URL": os.getenv("AUTH_SERVICE_URL", "http://localhost:8002").rstrip("/"),
+        "GROQ_API_KEY": os.getenv("GROQ_API_KEY", ""),
+        "OPENAI_API_KEY": os.getenv("OPENAI_API_KEY", ""),
     }

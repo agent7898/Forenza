@@ -1,6 +1,7 @@
 from datetime import datetime
+from uuid import UUID
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field
 
 
 class FaceParams(BaseModel):
@@ -16,16 +17,10 @@ class FaceParams(BaseModel):
     lip_thickness: float = Field(default=0.5, ge=0.0, le=1.0)
     mouth_width: float = Field(default=0.5, ge=0.0, le=1.0)
 
-    @field_validator('*')
-    def validate_range(cls, v):
-        if not isinstance(v, (int, float)) or v < 0.0 or v > 1.0:
-            raise ValueError('FaceParams must be in range [0, 1]')
-        return float(v)
-
 
 class SessionStateRead(BaseModel):
     """Session state for API responses."""
-    id: str
+    id: str          # serialised as string for frontend
     user_id: str
     parameters: dict = Field(default_factory=dict)
     preset: str | None = None
@@ -35,6 +30,19 @@ class SessionStateRead(BaseModel):
 
     class Config:
         from_attributes = True
+
+    @classmethod
+    def from_orm(cls, obj):
+        # Convert UUID fields to str for JSON serialisation
+        return cls(
+            id=str(obj.id),
+            user_id=str(obj.user_id),
+            parameters=obj.parameters or {},
+            preset=obj.preset,
+            z_current=obj.z_current,
+            created_at=obj.created_at,
+            updated_at=obj.updated_at,
+        )
 
 
 class SessionStateCreate(BaseModel):

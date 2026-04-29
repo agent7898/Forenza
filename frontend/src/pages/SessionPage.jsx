@@ -31,23 +31,38 @@ export default function SessionPage() {
   const [activeTab, setActiveTab] = useState('Facial Lab')
 
   const handleInitialGenerate = async (promptText, lang) => {
+    // Step 1: Create session in DB — must succeed to proceed
+    let sessionData
     try {
-      const sessionData = await createSession({ initialPrompt: promptText, lang })
+      sessionData = await createSession({ initialPrompt: promptText, lang })
       setSession(sessionData.session_id)
+    } catch (err) {
+      toast.error('Failed to create session — check backend connection')
+      return
+    }
+
+    // Step 2: Record the initial prompt
+    addPromptHistory({
+      text: promptText,
+      lang,
+      interpretation: 'Session initialised. Awaiting facial reconstruction.',
+      ts: Date.now()
+    })
+
+    // Step 3: Attempt face generation — soft failure if ML service is offline
+    try {
       const faceData = await generateFace(sessionData.session_id)
       if (faceData.image_url) setImageUrl(faceData.image_url)
-      
-      addPromptHistory({
-        text: promptText,
-        lang,
-        interpretation: 'Initial facial reconstruction generated from description.',
-        ts: Date.now()
-      })
       toast.success('Initial model generated')
     } catch (err) {
-      toast.error('Failed to initialize session')
+      // ML service not running yet — workspace still opens, image pending
+      toast('Session ready. ML service offline — face generation unavailable.', {
+        icon: '⚠️',
+        style: { background: '#161B22', color: '#f59e0b', border: '1px solid #30363D' }
+      })
     }
   }
+
 
   const handleLogout = () => {
     reset()
@@ -172,13 +187,13 @@ export default function SessionPage() {
             ) : (
               /* Phase 2: Active Session — full workspace */
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 h-full animate-fade-in">
-                <div className="lg:col-span-5 h-full flex flex-col min-h-0">
+                <div className="lg:col-span-4 h-full flex flex-col min-h-0">
                   <FaceCanvas />
                 </div>
                 <div className="lg:col-span-4 h-full flex flex-col min-h-0">
                   <SliderPanel />
                 </div>
-                <div className="lg:col-span-3 h-full flex flex-col gap-4 min-h-0">
+                <div className="lg:col-span-4 h-full flex flex-col gap-4 min-h-0">
                   <div className="shrink-0">
                     <PromptBar />
                   </div>

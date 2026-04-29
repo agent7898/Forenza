@@ -12,7 +12,11 @@ elif DATABASE_URL.startswith("postgresql://"):
 engine = create_async_engine(
     DATABASE_URL,
     echo=True,
-    connect_args={"statement_cache_size": 0}
+    pool_pre_ping=True,
+    pool_size=5,
+    max_overflow=10,
+    pool_recycle=1800,
+    connect_args={"statement_cache_size": 0, "server_settings": {"jit": "off"}}
 )
 
 SessionLocal = sessionmaker(

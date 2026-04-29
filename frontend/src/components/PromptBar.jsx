@@ -27,18 +27,20 @@ export default function PromptBar({ isInitial = false, onInitialGenerate }) {
   
   const { sessionId, setParams, setImageUrl, addPromptHistory } = useSessionStore()
   const { isRecording, transcript } = useAudioStore()
-  const { toggleRecording, stopRecording } = useAudioInput(lang)
+  const { isProcessing, toggleRecording, stopRecording } = useAudioInput(lang)
   
   const textareaRef = useRef(null)
 
   // Sync transcript to text
   useEffect(() => {
-    if (isRecording) setText(transcript)
-  }, [transcript, isRecording])
+    if (transcript && !isRecording && !isProcessing) {
+      setText(transcript)
+    }
+  }, [transcript, isRecording, isProcessing])
 
   useEffect(() => {
-    setStatus(isRecording ? 'listening' : 'idle')
-  }, [isRecording])
+    setStatus(isRecording ? 'listening' : isProcessing ? 'transcribing' : 'idle')
+  }, [isRecording, isProcessing])
 
   // Auto-grow textarea
   useEffect(() => {
@@ -75,8 +77,17 @@ export default function PromptBar({ isInitial = false, onInitialGenerate }) {
       if (nlpData.parameters) {
         patch = nlpData.parameters
         setParams(patch)
-        const data = await refineFace(sessionId, useSessionStore.getState().parameters)
-        if (data.image_url) setImageUrl(data.image_url)
+        
+        // Attempt face generation — soft failure if ML service is offline
+        try {
+          const data = await refineFace(sessionId, useSessionStore.getState().parameters)
+          if (data.image_url) setImageUrl(data.image_url)
+        } catch (err) {
+          toast('Parameters updated. ML service offline — face update unavailable.', {
+            icon: '⚠️',
+            style: { background: '#161B22', color: '#f59e0b', border: '1px solid #30363D' }
+          })
+        }
       }
 
       addPromptHistory({
@@ -86,7 +97,9 @@ export default function PromptBar({ isInitial = false, onInitialGenerate }) {
         interpretation: nlpData.interpretation,
         ts: Date.now()
       })
-      toast.success('Features updated')
+      if (!patch || Object.keys(patch).length > 0) {
+        toast.success('Command processed')
+      }
     } catch (err) {
       toast.error('Failed to process command')
       addPromptHistory({ text: promptText, lang, error: true, ts: Date.now() })
@@ -129,8 +142,8 @@ export default function PromptBar({ isInitial = false, onInitialGenerate }) {
           value={text}
           onChange={e => setText(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder={isRecording ? 'Listening...' : isInitial ? 'Describe the suspect to begin...' : 'Describe features to refine...'}
-          disabled={status === 'processing'}
+          placeholder={isRecording ? 'Listening...' : isProcessing ? 'Transcribing...' : isInitial ? 'Describe the suspect to begin...' : 'Describe features to refine...'}
+          disabled={status === 'processing' || isProcessing}
           rows={1}
           className="flex-1 bg-transparent resize-none py-3 px-2 text-sm text-on-surface outline-none placeholder-outline disabled:opacity-50"
         />
@@ -144,6 +157,9 @@ export default function PromptBar({ isInitial = false, onInitialGenerate }) {
       </div>
       {status === 'processing' && (
         <div className="text-[10px] text-primary animate-pulse text-center">Processing Natural Language...</div>
+      )}
+      {status === 'transcribing' && (
+        <div className="text-[10px] text-secondary animate-pulse text-center">Transcribing Audio...</div>
       )}
     </div>
   )
