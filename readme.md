@@ -2,15 +2,16 @@
 
 ## Overview
 
-This project is a **product-oriented MVP** designed to assist law enforcement in reconstructing suspect faces from eyewitness descriptions.
+This project is a **product-oriented MVP** designed to assist law enforcement in reconstructing suspect faces from eyewitness input.
 
-Unlike generic image generation systems, this platform focuses on:
+Unlike conventional AI image generators, this system focuses on:
 
-* **Deterministic control**
-* **Identity consistency across iterations**
-* **Structured facial parameter manipulation**
+* **Deterministic face generation**
+* **Identity consistency across edits**
+* **Controlled parametric manipulation**
+* **Guided user input (presets + sliders + NLP)**
 
-The system combines **parametric control, AI-assisted NLP, and generative models** to produce reproducible and refinable facial composites.
+The system combines **latent-space manipulation (StyleGAN), structured parameters, and AI-assisted NLP** to produce reproducible and iteratively refinable facial composites.
 
 ---
 
@@ -18,15 +19,15 @@ The system combines **parametric control, AI-assisted NLP, and generative models
 
 Traditional forensic sketching:
 
-* Requires skilled artists
-* Is time-consuming
-* Produces inconsistent outputs
+* Requires trained artists
+* Is time-intensive
+* Produces inconsistent results
 
-Existing AI tools:
+Generic AI generators:
 
 * Lack control
 * Are non-deterministic
-* Cannot preserve identity across edits
+* Cannot preserve identity across refinements
 
 ---
 
@@ -34,72 +35,120 @@ Existing AI tools:
 
 A system that enables:
 
-1. Natural language → structured facial parameters
-2. Controlled face generation using latent representations
-3. Iterative refinement without identity drift
-4. Exportable high-resolution composites
-5. Full audit trail for accountability
+1. Guided initialization using predefined facial presets
+2. Controlled face generation using latent vectors
+3. Iterative refinement via sliders, presets, and NLP
+4. Identity-preserving transformations
+5. Exportable, reproducible outputs
+6. Full audit trail for traceability
 
 ---
 
-## Key Features
+## Core Features
 
-### 1. Controlled Face Generation
+### 1. Guided Initialization (Preset System)
+
+Instead of relying on vague descriptions, users begin with structured selection:
+
+* Face shape (oval, round, square, long)
+* Skin tone (light, medium, dark)
+* Age group (young, middle, older)
+* Gender (optional)
+
+These inputs define the **initial latent representation (Z₀)**.
+
+---
+
+### 2. Controlled Face Generation
 
 * Uses pretrained StyleGAN
-* Parameter-driven modifications (10 core features)
-* Deterministic outputs
+* Generates base face from latent vector
+* Deterministic: same inputs → same output
 
 ---
 
-### 2. Hybrid Interaction System
+### 3. Real-Time Latent Editing
 
-* **Sliders (primary control)**
-* **Chat interface (assistive control)**
+Face refinement is performed through **latent vector manipulation**, not regeneration.
+
+```text
+Z_current = Z_base + Σ(feature_directions × weights)
+```
+
+* Enables smooth, real-time updates
+* Preserves identity across changes
 
 ---
 
-### 3. Identity Consistency
+### 4. Hybrid Interaction Model
+
+Three input layers:
+
+1. **Presets (guided selection)** — for non-expert users
+2. **Sliders (primary control)** — precise parameter tuning
+3. **Chat/NLP (assistive)** — natural language adjustments
+
+---
+
+### 5. NLP with Regional Language Support
+
+* Accepts multilingual input
+* Uses OpenAI API for parsing
+* Converts text → structured parameter updates
+
+---
+
+### 6. Parameter Control System
+
+Initial parameter set (Phase 1):
+
+* jaw_width
+* chin_length
+* face_length
+* eye_size
+* eye_spacing
+* eye_angle
+* nose_length
+* nose_width
+* lip_thickness
+* mouth_width
+
+All parameters normalized in range **[0, 1]**
+
+---
+
+### 7. Identity Consistency
 
 * Base latent vector is fixed per session
-* Edits applied incrementally
-* Same inputs → same output
+* Edits are incremental (delta-based)
+* No regeneration from scratch
 
 ---
 
-### 4. NLP with Regional Language Support
+### 8. Audit Logging
 
-* Input accepted in multiple languages
-* Parsed via OpenAI API
-* Converted into structured parameter updates
+Structured, append-only logs capturing:
 
----
-
-### 5. Audit Logging
-
-* Structured, append-only logs
-* Tracks:
-
-  * parameter changes
-  * timestamps
-  * user actions
-  * generated outputs
+* user actions
+* parameter changes
+* timestamps
+* generated outputs
 
 ---
 
-### 6. Exportable Outputs
+### 9. Exportable Output
 
 * High-resolution face generation
-* Reproducible via stored parameters
+* Reproducible via stored parameters and seed
 
 ---
 
 ## System Architecture
 
-### Monolithic but Modular Design
+### Modular Monolith Design
 
-```
-Client (React)
+```text
+Frontend (React)
    ↓
 Backend (FastAPI)
 
@@ -116,103 +165,41 @@ Modules:
 
 ---
 
-## Core Modules
-
-### 1. Session Manager
-
-Maintains:
-
-* base latent vector
-* parameter state
-* version history
-
----
-
-### 2. Parameter Engine
-
-* Validates inputs
-* Normalizes values (0–1 range)
-* Acts as system control layer
-
----
-
-### 3. NLP Parser
-
-* Converts text → parameters
-* Supports regional languages via translation + LLM parsing
-
----
-
-### 4. Identity Engine
-
-Maintains consistency:
-
-```
-Z_current = Z_base + Σ(feature_directions × weights)
-```
-
----
-
-### 5. Face Generator
-
-* Converts latent vectors → images
-* Uses pretrained GAN
-
----
-
-### 6. Audit Logger
-
-Stores structured logs for every interaction.
-
----
-
-### 7. Storage Layer
-
-* PostgreSQL → metadata, sessions, logs
-* Object storage (S3/GCS) → generated images
-
----
-
 ## Data Flow
 
-### Parameter Update Flow
+### Initialization Flow
 
-```
-User Input (slider/chat)
+```text
+User selects presets
    ↓
-Parameter Engine
+Parameter mapping
    ↓
-Session Update
+Latent initialization (Z₀)
    ↓
-Identity Engine
+Face generation
    ↓
-Face Generator
-   ↓
-Storage
-   ↓
-Audit Log
-   ↓
-Response to UI
+Display in UI
 ```
 
 ---
 
-## Parameter Schema (Initial)
+### Refinement Flow
 
-| Feature         | Description           |
-| --------------- | --------------------- |
-| jaw_width       | Face width            |
-| chin_length     | Chin extension        |
-| eye_size        | Eye scale             |
-| eye_spacing     | Distance between eyes |
-| nose_length     | Nose height           |
-| nose_width      | Nose breadth          |
-| lip_thickness   | Lip volume            |
-| mouth_width     | Mouth span            |
-| forehead_height | Upper face ratio      |
-| skin_tone       | Tone variation        |
-
-Range: **0.0 – 1.0**
+```text
+User input (slider / preset / chat)
+   ↓
+Parameter update
+   ↓
+Latent delta computation
+   ↓
+Z_new = Z_current + Δ
+   ↓
+Face generation
+   ↓
+Audit log
+   ↓
+UI update
+```
 
 ---
 
@@ -225,7 +212,7 @@ Range: **0.0 – 1.0**
 
 ### Backend
 
-* FastAPI (Python)
+* FastAPI
 
 ### AI / ML
 
@@ -234,89 +221,69 @@ Range: **0.0 – 1.0**
 
 ### Storage
 
-* PostgreSQL
-* AWS S3 / GCP Storage
-
----
-
-## Setup Instructions
-
-### 1. Clone Repo
-
-```
-git clone <repo_url>
-cd project
-```
-
-### 2. Backend Setup
-
-```
-pip install -r requirements.txt
-uvicorn main:app --reload
-```
-
-### 3. Frontend Setup
-
-```
-npm install
-npm run dev
-```
+* PostgreSQL (metadata, sessions, logs)
+* Object storage (S3/GCS) for images
 
 ---
 
 ## Project Structure
 
-```
+```text
 /frontend
 /backend
-   /auth
-   /session
-   /parameters
-   /nlp
-   /identity
-   /generator
-   /audit
-   /storage
+   /app
+      /api
+      /core
+      /modules
+         /generator
+         /nlp
+         /storage
+/storage
+/models
 ```
 
 ---
 
 ## Success Criteria
 
-* Deterministic face generation
+* Deterministic outputs
+* Real-time response (<200ms target per update)
 * Identity preserved across edits
-* Accurate NLP → parameter mapping
-* Full audit traceability
-* Usable UI for non-experts
+* Accurate parameter control
+* Usable for non-expert users
 
 ---
 
 ## Limitations
 
 * Not legally admissible evidence
-* Limited parameter granularity (v1)
+* Limited parameter granularity (Phase 1)
+* Latent directions are approximate (not perfectly disentangled)
 * Bias inherited from pretrained models
 
 ---
 
 ## Roadmap
 
-### Phase 1 (MVP)
+### Phase 1 (Current)
 
-* Core generation + sliders
-* NLP parsing
-* Audit logging
+* Base generation (StyleGAN)
+* Guided presets
+* Slider control
+* Basic NLP parsing
+* Latent editing system
 
 ### Phase 2
 
-* Improved latent direction control
-* Better parameter granularity
+* Improved latent direction learning
+* More granular facial parameters
+* UI refinement
 
 ### Phase 3
 
-* Database matching (using embeddings like ArcFace)
-* Bias mitigation layer
-* Advanced UI controls
+* Face matching using embeddings (e.g. ArcFace)
+* Bias mitigation
+* Advanced forensic validation
 
 ---
 
@@ -324,19 +291,24 @@ npm run dev
 
 This system differs from standard AI generators by:
 
-* Enforcing **deterministic control**
-* Maintaining **identity across edits**
-* Supporting **regional language input**
-* Providing **audit-ready workflows**
+* Enforcing **deterministic control instead of prompt randomness**
+* Maintaining **identity consistency across iterations**
+* Supporting **guided input for non-expert users**
+* Enabling **real-time parametric editing**
 
 ---
 
 ## Disclaimer
 
-This system is intended as an **investigative aid only**, not a definitive identification tool.
+This system is intended as an **investigative aid only** and should not be used for definitive identification.
 
 ---
 
 ## Contributors
 
-* Team of 4 (Control, Rendering, NLP, Infra)
+Team of 4:
+
+* Control & Interface
+* Rendering & Latent System
+* NLP & Language Processing
+* Infrastructure & Logging
