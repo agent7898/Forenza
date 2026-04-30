@@ -16,6 +16,7 @@ async def write_audit_log(db: AsyncSession, entry: AuditLogEntry) -> AuditLog:
         params_before=entry.params_before,
         params_after=entry.params_after,
         image_url=entry.image_url,
+        side_image_url=entry.side_image_url,
         phash=entry.phash,
     )
     db.add(record)
@@ -32,6 +33,7 @@ async def log_action(
     params_before: dict,
     params_after: dict,
     image_url: str | None = None,
+    side_image_url: str | None = None,
     case_id: str | None = None,
     phash: str | None = None,
 ) -> AuditLog:
@@ -44,6 +46,7 @@ async def log_action(
         params_before=params_before,
         params_after=params_after,
         image_url=image_url,
+        side_image_url=side_image_url,
         phash=phash,
     )
     return await write_audit_log(db, entry)

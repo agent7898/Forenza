@@ -64,15 +64,13 @@ async def refine_face(
     from app.core.storage import upload_image_bytes
     from app.core.similarity import compute_phash, hash_to_string
     
-    try:
-        # Same SDXL pipeline as initial generation, with same session seed.
-        # The anchored prompt + seed ensures the face structure stays consistent.
-        # Only the feature descriptors change based on accumulated parameters.
+    try {
         raw_image_bytes = await generate_forensic_image(
             params_after, 
             session.z_current, 
             refinement_text=accumulated_description,
-            gender=session.gender
+            gender=session.gender,
+            view="front"
         )
         # Compute pHash for similarity matching
         phash_arr = compute_phash(raw_image_bytes)

@@ -13,6 +13,7 @@ class AuditLogEntry(BaseModel):
     params_before: dict = Field(default_factory=dict)
     params_after: dict = Field(default_factory=dict)
     image_url: str | None = None
+    side_image_url: str | None = None
     phash: str | None = None
 
 
@@ -26,6 +27,7 @@ class AuditLogRead(BaseModel):
     params_before: dict
     params_after: dict
     image_url: str | None = None
+    side_image_url: str | None = None
     timestamp: datetime
 
     class Config:
@@ -42,5 +44,6 @@ class AuditLogRead(BaseModel):
             params_before=obj.params_before or {},
             params_after=obj.params_after or {},
             image_url=obj.image_url,
+            side_image_url=obj.side_image_url,
             timestamp=obj.timestamp,
         )

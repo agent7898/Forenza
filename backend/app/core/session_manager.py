@@ -21,7 +21,12 @@ async def create_session(
     gender: str = "male",
 ) -> SessionRecord:
     """Create a new session for a user."""
-    import random
+    # Use a deterministic seed based on the initial description to ensure 
+    # that the same prompt in different sessions yields the same base image.
+    import hashlib
+    seed_hash = hashlib.md5((description or "standard").encode()).hexdigest()
+    deterministic_seed = int(seed_hash[:8], 16) % 1000000
+
     record = SessionRecord(
         user_id=_to_uuid(user_id),
         case_id=_to_uuid(case_id) if case_id else None,
@@ -29,7 +34,7 @@ async def create_session(
         preset=preset,
         description=description,
         gender=gender,
-        z_current=str(random.randint(100000, 999999))
+        z_current=str(deterministic_seed)
     )
     db.add(record)
     await db.commit()

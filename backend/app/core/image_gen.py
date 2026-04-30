@@ -9,13 +9,22 @@ import base64
 # the mutable facial features. It ensures the model generates the same person
 # every time, regardless of which features change.
 
-IDENTITY_ANCHOR_MALE = (
+IDENTITY_ANCHOR_MALE_FRONT = (
     "A detailed forensic police sketch, hand-drawn pencil portrait, charcoal shading, "
     "front-facing portrait of one Caucasian male, "
     "looking directly into the camera lens, eyes at camera level, shoulders square and symmetrical. "
     "He is 38 years old, short hair, neutral expression, plain white paper background. "
     "Sharp pencil lines, professional artistic sketch, realistic proportions, "
     "completely centered, perfectly symmetrical, no head tilt, no rotation."
+)
+
+IDENTITY_ANCHOR_MALE_SIDE = (
+    "A detailed forensic police sketch, hand-drawn pencil portrait, charcoal shading, "
+    "90-degree profile view portrait of one Caucasian male, "
+    "looking to the side, eyes level, shoulders at an angle. "
+    "He is 38 years old, short hair, neutral expression, plain white paper background. "
+    "Sharp pencil lines, professional artistic sketch, realistic proportions, "
+    "perfect side profile showing jawline and nose shape clearly."
 )
 
 IDENTITY_ANCHOR_FEMALE = (
@@ -124,11 +133,9 @@ def _describe_value(feature_key: str, value: float) -> str | None:
     return None
 
 
-def build_forensic_prompt(parameters: dict, refinement_text: str | None = None, gender: str = "male") -> str:
+def build_forensic_prompt(parameters: dict, refinement_text: str | None = None, gender: str = "male", view: str = "front") -> str:
     """
     Build an anchored forensic prompt with fixed feature ordering and optional refinement text.
-    
-    Structure: [IDENTITY anchor] + [FEATURE descriptors] + [REFINEMENT text]
     """
     ordered_keys = [
         "jaw_width", "chin_length", "face_length", "eye_size", "eye_spacing",
@@ -144,15 +151,17 @@ def build_forensic_prompt(parameters: dict, refinement_text: str | None = None, 
 
     feature_text = ", ".join(feature_parts)
     
-    # Select anchor based on gender
-    anchor = IDENTITY_ANCHOR_FEMALE if gender.lower() == "female" else IDENTITY_ANCHOR_MALE
+    # Select anchor based on gender and view
+    if gender.lower() == "female":
+        anchor = IDENTITY_ANCHOR_FEMALE # We can add SIDE later
+    else:
+        anchor = IDENTITY_ANCHOR_MALE_SIDE if view == "side" else IDENTITY_ANCHOR_MALE_FRONT
     
-    print(f"[ImageGen] Building prompt for GENDER: {gender}")
+    print(f"[ImageGen] Building prompt for GENDER: {gender}, VIEW: {view}")
     
     prompt = f"{anchor} Facial features: {feature_text}."
     
     if refinement_text:
-        # Append refinement text to guide slight changes while keeping the anchor/features
         prompt += f" Additional details: {refinement_text}."
         
     return prompt
@@ -162,12 +171,13 @@ async def generate_forensic_image(
     parameters: dict, 
     seed: str, 
     refinement_text: str | None = None,
-    gender: str = "male"
+    gender: str = "male",
+    view: str = "front"
 ) -> bytes:
     """
     Generate a forensic sketch using Pollinations.ai (Free & Unlimited).
     """
-    base_prompt = build_forensic_prompt(parameters, refinement_text, gender)
+    base_prompt = build_forensic_prompt(parameters, refinement_text, gender, view)
     # Force a "forensic sketch" style
     sketch_prompt = f"{base_prompt} High quality forensic sketch on paper. Negative prompt: {NEGATIVE_PROMPT}"
     

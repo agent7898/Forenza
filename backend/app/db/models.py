@@ -60,6 +60,7 @@ class AuditLog(Base):
     params_before: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
     params_after: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
     image_url: Mapped[str | None] = mapped_column(String(2048), nullable=True)
+    side_image_url: Mapped[str | None] = mapped_column(String(2048), nullable=True)
     phash: Mapped[str | None] = mapped_column(String(64), nullable=True)  # Store as 64-char bit string
     timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
 

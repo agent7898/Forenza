@@ -82,7 +82,9 @@ export default function PromptBar({ isInitial = false, onInitialGenerate }) {
         // Attempt face generation — soft failure if ML service is offline
         try {
           const data = await refineFace(sessionId, useSessionStore.getState().parameters, promptText)
-          if (data.image_url) setImageUrl(data.image_url)
+          if (data.image_url) {
+            setImageUrl(data.image_url, data.side_image_url)
+          }
         } catch (err) {
           toast('Parameters updated. ML service offline — face update unavailable.', {
             icon: '⚠️',

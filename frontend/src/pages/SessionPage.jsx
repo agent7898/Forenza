@@ -92,9 +92,11 @@ export default function SessionPage() {
 
     // Step 4: Attempt face generation — soft failure if ML service is offline
     try {
-      const faceData = await generateFace(sessionData.session_id)
-      if (faceData.image_url) setImageUrl(faceData.image_url)
-      toast.success('Initial model generated')
+      const faceData = await generateFace(sessionData.id)
+      if (faceData.image_url) {
+        setImageUrl(faceData.image_url, faceData.side_image_url)
+      }
+      toast.success('Dual-view model generated')
     } catch (err) {
       // ML service not running yet — workspace still opens, image pending
       toast('Session ready. ML service offline — face generation unavailable.', {

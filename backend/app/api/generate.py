@@ -44,10 +44,7 @@ async def generate_face(
             detail="Forbidden"
         )
 
-    # Update z_current with a fresh random seed for every new generation
-    import random
-    z_current = str(random.randint(100000, 999999))
-    session.z_current = z_current
+    z_current = session.z_current
     params_before = session.parameters or {}
 
     # Call Image Generation Engine
@@ -60,8 +57,10 @@ async def generate_face(
             params_before, 
             z_current, 
             refinement_text=session.description,
-            gender=session.gender
+            gender=session.gender,
+            view="front"
         )
+
         # Compute pHash for similarity matching
         phash_arr = compute_phash(raw_image_bytes)
         phash_str = hash_to_string(phash_arr)
@@ -70,8 +69,8 @@ async def generate_face(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to generate image: {str(e)}"
         )
-
-    # Upload to R2 directly from bytes
+        
+    # Upload to R2
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     image_url = upload_image_bytes(session_id, timestamp, "generate", raw_image_bytes)
 
@@ -79,15 +78,15 @@ async def generate_face(
     session.updated_at = datetime.now(timezone.utc)
     await save_session(db, session)
 
-    # Write audit log
+    # Log initial state
     await log_action(
         db,
         session_id=session_id,
         user_id=user_id,
         case_id=str(session.case_id) if session.case_id else None,
         action="generate",
-        params_before=params_before,
-        params_after=params_before,  # params didn't change
+        params_before={},
+        params_after=params_before,
         image_url=image_url,
         phash=phash_str,
     )
