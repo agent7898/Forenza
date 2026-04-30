@@ -4,9 +4,11 @@ import { exportSession } from '../api/sessions'
 import { matchFace } from '../api/match'
 import toast from 'react-hot-toast'
 import { useState } from 'react'
+import useOverlayStore from '../store/overlayStore'
 
 export default function FaceCanvas() {
   const { sessionId, imageUrl, sideImageUrl, isLoading, undo, redo, historyIndex, imageHistory } = useSessionStore()
+  const { activeOverlays, updateOverlay } = useOverlayStore()
   const [exporting, setExporting] = useState(false)
   const [compareMode, setCompareMode] = useState(false)
   const [matching, setMatching] = useState(false)
@@ -118,12 +120,52 @@ export default function FaceCanvas() {
               </div>
             </div>
           ) : (
-            <img
-              src={imageUrl}
-              alt="Generated facial reconstruction"
-              className="w-full h-full object-contain transition-opacity duration-500"
-              id="face-canvas-image"
-            />
+            <div className="relative w-full h-full flex items-center justify-center overflow-hidden" id="overlay-container">
+              <img
+                src={imageUrl}
+                alt="Generated facial reconstruction"
+                className="w-full h-full object-contain transition-opacity duration-500 pointer-events-none"
+                id="face-canvas-image"
+              />
+              
+              {/* Overlays Layer */}
+              {activeOverlays.map(o => (
+                <div 
+                  key={o.id}
+                  className="absolute cursor-move select-none"
+                  style={{
+                    left: `${o.x}%`,
+                    top: `${o.y}%`,
+                    transform: `translate(-50%, -50%) scale(${o.scale})`,
+                    opacity: o.opacity,
+                    filter: 'contrast(1.2) brightness(0.8) grayscale(1)',
+                    mixBlendMode: 'multiply' // Blend with the skin
+                  }}
+                  onMouseDown={(e) => {
+                    const container = e.currentTarget.parentElement;
+                    const rect = container.getBoundingClientRect();
+                    const onMouseMove = (moveEvent) => {
+                      const x = ((moveEvent.clientX - rect.left) / rect.width) * 100;
+                      const y = ((moveEvent.clientY - rect.top) / rect.height) * 100;
+                      updateOverlay(o.id, { x, y });
+                    };
+                    const onMouseUp = () => {
+                      window.removeEventListener('mousemove', onMouseMove);
+                      window.removeEventListener('mouseup', onMouseUp);
+                    };
+                    window.addEventListener('mousemove', onMouseMove);
+                    window.addEventListener('mouseup', onMouseUp);
+                  }}
+                >
+                  <img 
+                    src={o.url} 
+                    alt={o.name} 
+                    className="max-w-[400px] pointer-events-none" 
+                    draggable="false"
+                  />
+                </div>
+              ))}
+            </div>
           )
         ) : (
           <div className="flex flex-col items-center gap-4 text-on-surface-variant">

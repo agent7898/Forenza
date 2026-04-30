@@ -10,6 +10,7 @@ import PromptHistory from '../components/PromptHistory'
 import AuditTimeline from '../components/AuditTimeline'
 import CaseFiles from '../components/CaseFiles'
 import SystemLog from '../components/SystemLog'
+import OverlayPanel from '../components/OverlayPanel'
 import { createSession, generateFace } from '../api/sessions'
 import { listCases, createCase } from '../api/cases'
 import { parseNLP } from '../api/nlp'
@@ -17,6 +18,7 @@ import toast from 'react-hot-toast'
 
 const NAV_ITEMS = [
   { id: 'Facial Lab', icon: '◉' },
+  { id: 'Markers', icon: '🏷️' },
   { id: 'Case Files', icon: '▣' },
   { id: 'System Log', icon: '▤' },
 ]
@@ -261,6 +263,17 @@ export default function SessionPage() {
                 </div>
               </div>
             )
+          )}
+
+          {activeTab === 'Markers' && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 h-full animate-fade-in">
+              <div className="h-full flex flex-col min-h-0">
+                <FaceCanvas />
+              </div>
+              <div className="h-full flex flex-col min-h-0">
+                <OverlayPanel />
+              </div>
+            </div>
           )}
 
           {activeTab === 'Case Files' && <CaseFiles />}
