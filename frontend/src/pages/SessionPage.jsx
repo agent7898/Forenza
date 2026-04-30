@@ -11,11 +11,11 @@ import AuditTimeline from '../components/AuditTimeline'
 import CaseFiles from '../components/CaseFiles'
 import SystemLog from '../components/SystemLog'
 import { createSession, generateFace } from '../api/sessions'
+import { parseNLP } from '../api/nlp'
 import toast from 'react-hot-toast'
 
 const NAV_ITEMS = [
   { id: 'Facial Lab', icon: '◉' },
-  { id: 'Biometrics', icon: '◎' },
   { id: 'Case Files', icon: '▣' },
   { id: 'Evidence', icon: '◈' },
   { id: 'System Log', icon: '▤' },
@@ -24,32 +24,49 @@ const NAV_ITEMS = [
 export default function SessionPage() {
   const logout = useAuthStore((s) => s.logout)
   const user = useAuthStore((s) => s.user)
-  const { sessionId, reset, setSession, setImageUrl, addPromptHistory } = useSessionStore()
+  const { sessionId, reset, setSession, setImageUrl, addPromptHistory, setLoading, setParams } = useSessionStore()
   const navigate = useNavigate()
   
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [activeTab, setActiveTab] = useState('Facial Lab')
 
   const handleInitialGenerate = async (promptText, lang) => {
-    // Step 1: Create session in DB — must succeed to proceed
     let sessionData
+    let initialParams = {}
+    
     try {
-      sessionData = await createSession({ initialPrompt: promptText, lang })
+      setLoading(true)
+      
+      // Step 1: Parse NLP for initial parameters
+      try {
+        const nlpData = await parseNLP(promptText, lang)
+        if (nlpData.parameters) {
+          initialParams = nlpData.parameters
+          setParams(initialParams) // Update local store
+        }
+      } catch (nlpErr) {
+        toast.error('NLP processing failed, using default parameters')
+      }
+
+      // Step 2: Create session in DB with parsed parameters
+      sessionData = await createSession({ parameters: initialParams })
       setSession(sessionData.session_id)
     } catch (err) {
+      setLoading(false)
       toast.error('Failed to create session — check backend connection')
       return
     }
 
-    // Step 2: Record the initial prompt
+    // Step 3: Record the initial prompt
     addPromptHistory({
       text: promptText,
       lang,
-      interpretation: 'Session initialised. Awaiting facial reconstruction.',
+      patch: initialParams,
+      interpretation: 'Session initialised with parsed parameters.',
       ts: Date.now()
     })
 
-    // Step 3: Attempt face generation — soft failure if ML service is offline
+    // Step 4: Attempt face generation — soft failure if ML service is offline
     try {
       const faceData = await generateFace(sessionData.session_id)
       if (faceData.image_url) setImageUrl(faceData.image_url)
@@ -60,6 +77,8 @@ export default function SessionPage() {
         icon: '⚠️',
         style: { background: '#161B22', color: '#f59e0b', border: '1px solid #30363D' }
       })
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -186,14 +205,11 @@ export default function SessionPage() {
               </div>
             ) : (
               /* Phase 2: Active Session — full workspace */
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 h-full animate-fade-in">
-                <div className="lg:col-span-4 h-full flex flex-col min-h-0">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 h-full animate-fade-in">
+                <div className="h-full flex flex-col min-h-0">
                   <FaceCanvas />
                 </div>
-                <div className="lg:col-span-4 h-full flex flex-col min-h-0">
-                  <SliderPanel />
-                </div>
-                <div className="lg:col-span-4 h-full flex flex-col gap-4 min-h-0">
+                <div className="h-full flex flex-col gap-4 min-h-0">
                   <div className="shrink-0">
                     <PromptBar />
                   </div>
@@ -213,7 +229,7 @@ export default function SessionPage() {
           {activeTab === 'System Log' && <SystemLog />}
           
           {/* Generic Placeholders for tabs not fully built out yet */}
-          {(activeTab === 'Biometrics' || activeTab === 'Evidence') && (
+          {(activeTab === 'Evidence') && (
             <div className="h-full flex items-center justify-center border-2 border-dashed border-border rounded-xl text-on-surface-variant flex-col gap-4 animate-fade-in">
               <span className="text-4xl text-outline">◈</span>
               <p className="font-display font-medium tracking-wide uppercase">{activeTab} MODULE OFFLINE</p>

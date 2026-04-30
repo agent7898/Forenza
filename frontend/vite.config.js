@@ -10,7 +10,7 @@ export default defineConfig({
       // Proxy all /api/* requests to the main backend during development.
       // This eliminates CORS issues when running frontend on :5173 and backend on :8000.
       '/api': {
-        target: process.env.VITE_API_URL || 'http://localhost:8000',
+        target: process.env.VITE_API_URL || 'http://127.0.0.1:8000',
         changeOrigin: true,
         secure: false,
       },

@@ -4,7 +4,6 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.audit_logger import log_action
-from app.core.ml_client import ml_post
 from app.core.session_manager import get_session, save_session
 from app.core.storage import upload_image
 from app.dependencies import get_current_user, get_db
@@ -45,21 +44,27 @@ async def generate_face(
             detail="Forbidden"
         )
 
-    # Extract z_current and parameters from session
-    z_current = session.z_current
+    # Update z_current with a fresh random seed for every new generation
+    import random
+    z_current = str(random.randint(100000, 999999))
+    session.z_current = z_current
     params_before = session.parameters or {}
 
-    # Call ML service
-    result = await ml_post("/ml/generate", {"z_vector": z_current})
-    if not result.get("image_base64"):
+    # Call Image Generation Engine
+    from app.core.image_gen import generate_forensic_image
+    from app.core.storage import upload_image_bytes
+    
+    try:
+        raw_image_bytes = await generate_forensic_image(params_before, z_current)
+    except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="ML service returned invalid response"
+            detail=f"Failed to generate image: {str(e)}"
         )
 
-    # Upload to R2 (never return raw bytes)
+    # Upload to R2 directly from bytes
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-    image_url = upload_image(session_id, timestamp, "generate", result["image_base64"])
+    image_url = upload_image_bytes(session_id, timestamp, "generate", raw_image_bytes)
 
     # Update session
     session.updated_at = datetime.now(timezone.utc)

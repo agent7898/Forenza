@@ -7,3 +7,6 @@ TEST_RESULTS.md
 
 # Local runner scripts
 start_all.sh
+*.log
+backend/app/assets/*.png
+!backend/app/assets/fallback_face.png

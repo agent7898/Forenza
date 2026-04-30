@@ -31,4 +31,29 @@ def upload_image(session_id: str, ts: str, action: str, img_b64: str) -> str:
     return url
 
 
+def upload_image_bytes(session_id: str, ts: str, action: str, img_bytes: bytes) -> str:
+    """Upload raw image bytes (not base64) to R2 and return a presigned URL."""
+    key = f"sessions/{session_id}/{ts}_{action}.png"
+    r2.put_object(Bucket=BUCKET, Key=key, Body=img_bytes, ContentType="image/png")
+    url = r2.generate_presigned_url(
+        "get_object",
+        Params={"Bucket": BUCKET, "Key": key},
+        ExpiresIn=3600,
+    )
+    return url
+
+
+def download_image_bytes(image_url: str) -> bytes | None:
+    """Download image bytes from an R2 presigned URL."""
+    import httpx
+    try:
+        response = httpx.get(image_url, timeout=30.0)
+        response.raise_for_status()
+        if len(response.content) > 1000:
+            return response.content
+    except Exception as e:
+        print(f"Failed to download previous image from R2: {e}")
+    return None
+
+
 upload_object = upload_image

@@ -5,7 +5,6 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.audit_logger import log_action
-from app.core.ml_client import ml_post
 from app.core.session_manager import get_session, save_session
 from app.core.storage import upload_image
 from app.dependencies import get_current_user, get_db
@@ -51,20 +50,23 @@ async def refine_face(
     params_before = session.parameters or {}
     params_after = req.parameters.model_dump()
 
-    # Call ML service
-    result = await ml_post("/ml/refine", {
-        "z_vector": session.z_current,
-        "parameters": params_after,
-    })
-    if not result.get("image_base64"):
+    from app.core.image_gen import generate_forensic_image
+    from app.core.storage import upload_image_bytes
+    
+    try:
+        # Same SDXL pipeline as initial generation, with same session seed.
+        # The anchored prompt + seed ensures the face structure stays consistent.
+        # Only the feature descriptors change based on accumulated parameters.
+        raw_image_bytes = await generate_forensic_image(params_after, session.z_current)
+    except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="ML service returned invalid response"
+            detail=f"Failed to generate refined image: {str(e)}"
         )
-
+        
     # Upload to R2
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-    image_url = upload_image(session_id, timestamp, "refine", result["image_base64"])
+    image_url = upload_image_bytes(session_id, timestamp, "refine", raw_image_bytes)
 
     # Update session
     session.parameters = params_after

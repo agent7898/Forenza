@@ -34,7 +34,7 @@ async def parse_natural_language_to_params(text: str, lang: str = "en") -> tuple
 
     try:
         response = await client.chat.completions.create(
-            model="llama3-70b-8192",
+            model="llama-3.1-8b-instant",
             response_format={ "type": "json_object" },
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},

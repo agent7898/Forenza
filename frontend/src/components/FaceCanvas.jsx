@@ -5,8 +5,9 @@ import toast from 'react-hot-toast'
 import { useState } from 'react'
 
 export default function FaceCanvas() {
-  const { sessionId, imageUrl, isLoading } = useSessionStore()
+  const { sessionId, imageUrl, isLoading, undo, redo, historyIndex, imageHistory } = useSessionStore()
   const [exporting, setExporting] = useState(false)
+  const [compareMode, setCompareMode] = useState(false)
 
   const handleExport = async () => {
     if (!sessionId) return
@@ -63,12 +64,33 @@ export default function FaceCanvas() {
         )}
 
         {imageUrl ? (
-          <img
-            src={imageUrl}
-            alt="Generated facial reconstruction"
-            className="w-full h-full object-contain transition-opacity duration-500"
-            id="face-canvas-image"
-          />
+          compareMode && historyIndex > 0 ? (
+            <div className="w-full h-full flex items-center justify-center bg-black/20">
+              <div className="flex-1 h-full border-r border-primary/20 relative flex items-center justify-center p-2">
+                <img
+                  src={imageHistory[historyIndex - 1].url}
+                  alt="Previous"
+                  className="w-full h-full object-contain opacity-75 grayscale sepia-[0.2]"
+                />
+                <div className="absolute bottom-4 left-4 text-[10px] bg-surface-container-high/80 backdrop-blur border border-outline-variant px-2 py-1 rounded text-outline font-mono">PREVIOUS</div>
+              </div>
+              <div className="flex-1 h-full relative flex items-center justify-center p-2">
+                <img
+                  src={imageUrl}
+                  alt="Current"
+                  className="w-full h-full object-contain"
+                />
+                <div className="absolute bottom-4 right-4 text-[10px] bg-primary/20 border border-primary/30 text-primary px-2 py-1 rounded font-mono backdrop-blur">CURRENT</div>
+              </div>
+            </div>
+          ) : (
+            <img
+              src={imageUrl}
+              alt="Generated facial reconstruction"
+              className="w-full h-full object-contain transition-opacity duration-500"
+              id="face-canvas-image"
+            />
+          )
         ) : (
           <div className="flex flex-col items-center gap-4 text-on-surface-variant">
             <div className="w-24 h-24 rounded-2xl border-2 border-dashed border-outline-variant flex items-center justify-center">
@@ -101,6 +123,22 @@ export default function FaceCanvas() {
           <span className={`text-[10px] font-mono uppercase tracking-wider ${imageUrl ? 'text-success' : 'text-outline'}`}>
             {imageUrl ? '● MODEL ACTIVE' : '○ STANDBY'}
           </span>
+          {/* History Controls */}
+          {imageUrl && (
+            <div className="flex items-center gap-1 border border-outline-variant rounded-lg p-0.5 bg-surface-container-lowest">
+              <button onClick={undo} disabled={historyIndex <= 0 || isLoading} className="p-1.5 text-on-surface-variant hover:text-on-surface disabled:opacity-30 disabled:hover:text-on-surface-variant transition-colors" title="Undo">
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg>
+              </button>
+              <div className="w-px h-3 bg-outline-variant" />
+              <button onClick={redo} disabled={historyIndex >= imageHistory.length - 1 || isLoading} className="p-1.5 text-on-surface-variant hover:text-on-surface disabled:opacity-30 disabled:hover:text-on-surface-variant transition-colors" title="Redo">
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 10h-10a8 8 10 00-8 8v2M21 10l-6 6m6-6l-6-6" /></svg>
+              </button>
+              <div className="w-px h-3 bg-outline-variant" />
+              <button onClick={() => setCompareMode(!compareMode)} disabled={historyIndex <= 0} className={`p-1 text-[10px] font-display font-medium px-2 rounded ${compareMode ? 'bg-primary/20 text-primary' : 'text-on-surface-variant hover:text-on-surface'} disabled:opacity-30 transition-colors`} title="Compare with Previous">
+                COMPARE
+              </button>
+            </div>
+          )}
         </div>
         <button
           id="export-btn"

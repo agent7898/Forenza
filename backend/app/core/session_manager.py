@@ -18,10 +18,12 @@ async def create_session(
     parameters: dict | None = None,
 ) -> SessionRecord:
     """Create a new session for a user."""
+    import random
     record = SessionRecord(
         user_id=_to_uuid(user_id),
         parameters=parameters or {},
         preset=preset,
+        z_current=str(random.randint(100000, 999999))
     )
     db.add(record)
     await db.commit()

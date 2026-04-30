@@ -25,7 +25,7 @@ export default function PromptBar({ isInitial = false, onInitialGenerate }) {
   const [lang, setLang] = useState('en')
   const [status, setStatus] = useState('idle') // idle, listening, processing
   
-  const { sessionId, setParams, setImageUrl, addPromptHistory } = useSessionStore()
+  const { sessionId, setParams, setImageUrl, addPromptHistory, setLoading } = useSessionStore()
   const { isRecording, transcript } = useAudioStore()
   const { isProcessing, toggleRecording, stopRecording } = useAudioInput(lang)
   
@@ -70,6 +70,7 @@ export default function PromptBar({ isInitial = false, onInitialGenerate }) {
     }
 
     try {
+      setLoading(true)
       // NLP Parse
       const nlpData = await parseNLP(promptText, lang)
       
@@ -105,6 +106,7 @@ export default function PromptBar({ isInitial = false, onInitialGenerate }) {
       addPromptHistory({ text: promptText, lang, error: true, ts: Date.now() })
     } finally {
       setStatus('idle')
+      setLoading(false)
     }
   }
 
