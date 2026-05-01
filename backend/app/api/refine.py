@@ -64,7 +64,7 @@ async def refine_face(
     from app.core.storage import upload_image_bytes
     from app.core.similarity import compute_phash, hash_to_string
     
-    try {
+    try :
         raw_image_bytes = await generate_forensic_image(
             params_after, 
             session.z_current, 
