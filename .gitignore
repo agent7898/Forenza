@@ -10,3 +10,5 @@ start_all.sh
 *.log
 backend/app/assets/*.png
 !backend/app/assets/fallback_face.png
+Archive_styleGAN_results
+FORENZA.pptx

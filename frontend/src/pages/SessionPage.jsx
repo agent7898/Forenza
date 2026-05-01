@@ -98,7 +98,7 @@ export default function SessionPage() {
       if (faceData.image_url) {
         setImageUrl(faceData.image_url, faceData.side_image_url)
       }
-      toast.success('Dual-view model generated')
+      toast.success('Forensic model generated')
     } catch (err) {
       // ML service not running yet — workspace still opens, image pending
       toast('Session ready. ML service offline — face generation unavailable.', {
